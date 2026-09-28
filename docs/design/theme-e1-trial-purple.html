@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>FTG-Overlay 设计稿 E1 · Combo Trial 风（参考紫）</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Microsoft YaHei UI","Microsoft YaHei","Segoe UI",sans-serif;width:1280px;height:880px;overflow:hidden;background:#0b0d12;color:#e8e8ec}
+.head{display:flex;align-items:baseline;gap:14px;padding:26px 36px 8px}
+.head h1{font-size:22px;letter-spacing:.5px;font-weight:700}
+.head .sub{font-size:13px;opacity:.55}
+.head .desc{margin-left:auto;font-size:13px;opacity:.72}
+.stage{position:relative;margin:12px 36px 0;height:648px;border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,.08);background:radial-gradient(1100px 520px at 50% 18%,#27304b 0%,#141826 52%,#0a0c13 100%)}
+.hud{position:absolute;top:30px;left:64px;right:64px;display:flex;justify-content:space-between;align-items:center}
+.hp{width:330px;height:9px;border-radius:5px;background:linear-gradient(90deg,#e5b83b,#f6dc7c);box-shadow:0 1px 0 rgba(0,0,0,.5)}
+.hp.rev{background:linear-gradient(270deg,#e5b83b,#f6dc7c)}
+.tm{font-size:12px;letter-spacing:2px;opacity:.45}
+.gx{position:absolute;right:28px;bottom:-34px;font-size:170px;font-weight:800;opacity:.04;letter-spacing:6px}
+.ph{position:absolute;top:14px;right:20px;font-size:11px;opacity:.35}
+.trial{position:absolute;left:64px;top:150px;width:430px}
+.tt{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:700;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.65)}
+.tt .check{color:#ff5ad2;font-size:21px;text-shadow:0 0 12px rgba(255,90,210,.6)}
+.tt .pg{margin-left:auto;font-size:12px;opacity:.6;font-weight:400}
+.sub{font-size:12px;opacity:.6;color:#e6d9f5;margin:4px 0 14px 31px}
+.step{display:flex;align-items:center;gap:8px;height:42px;padding:0 30px 0 14px;margin-bottom:9px;width:fit-content;min-width:300px;background:linear-gradient(90deg,rgba(167,110,231,.88),rgba(120,80,190,.28));clip-path:polygon(0 0,100% 0,calc(100% - 18px) 100%,0 100%);box-shadow:0 4px 14px rgba(0,0,0,.35)}
+.arrows{font-size:19px;font-weight:800;color:#fff;letter-spacing:1px;text-shadow:0 2px 6px rgba(0,0,0,.55)}
+.plus{color:#fff;opacity:.9;font-weight:700;font-size:15px}
+.btn{width:27px;height:27px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#141420;box-shadow:0 2px 6px rgba(0,0,0,.45);flex:none}
+.btn.A{background:#e8c14b}.btn.B{background:#66c98a}.btn.C{background:#e05a5a}.btn.D{background:#4d8fd6}
+.suf{margin-left:8px;font-size:11px;font-weight:800;color:#fff;background:rgba(20,10,40,.55);border:1px solid rgba(255,255,255,.4);border-radius:8px;padding:1px 7px}
+.hits{font-size:30px;font-weight:900;font-style:italic;color:#ff5ad2;text-shadow:0 0 14px rgba(255,90,210,.5),0 2px 4px rgba(0,0,0,.6);margin:12px 0 0 4px}
+.hits small{font-size:13px;font-style:normal;letter-spacing:2px;margin-left:8px;color:#fff;opacity:.85}
+.next{font-size:12.5px;color:#fff;opacity:.45;margin-top:8px}
+.hint{font-size:11.5px;color:#fff;opacity:.4;margin-top:5px}
+.legend{margin:14px 36px 0;font-size:12.5px;opacity:.62;display:flex;gap:20px;flex-wrap:wrap}
+</style></head>
+<body>
+  <div class="head">
+    <h1>设计稿 E1 · Combo Trial 风（参考紫）</h1><span class="sub">Trial Style · Purple</span>
+    <span class="desc">参考《街霸6》Trial 界面 · 每步一色条 · 无面板 · 贴边不遮挡</span>
+  </div>
+  <div class="stage">
+    <div class="hud"><div class="hp"></div><div class="tm">ROUND 1 · 99</div><div class="hp rev"></div></div>
+    <div class="gx">KOF XIII</div>
+    <div class="ph">游戏画面占位示意</div>
+    <div class="trial">
+      <div class="tt"><span class="check">✓</span> 版中基础 BNB <span class="pg">1 / 3</span></div>
+      <div class="sub">确反 · 版中 · 全角色通用</div>
+      <div class="step"><span class="arrows">↓</span><span class="btn B">B</span></div>
+      <div class="step"><span class="arrows">↓</span><span class="btn A">A</span></div>
+      <div class="step"><span class="arrows">↘</span><span class="plus">+</span><span class="btn D">D</span><span class="suf">1F</span></div>
+      <div class="step"><span class="arrows">↓↘→</span><span class="plus">+</span><span class="btn D">D</span></div>
+      <div class="step"><span class="arrows">←↓↙</span><span class="plus">+</span><span class="btn D">D</span></div>
+      <div class="hits">5<small>HITS</small></div>
+      <div class="next">下一条 ▸ ② 跳入起手</div>
+      <div class="hint">←/→ 切换 · H 显隐 · ● 鼠标穿透中</div>
+    </div>
+  </div>
+  <div class="legend">
+    <span>图例</span><span>每步一条半透明色条（cr.B → ↓+B，与 SF6 Trial 同规则）</span>
+    <span>↓↘→ = qcf 指令（正式版为矢量箭头图标）</span><span>圆钮 = A/B/C/D</span>
+    <span>1F = 目押帧徽标</span><span>HITS 数为占位示意</span>
+  </div>
+</body></html>

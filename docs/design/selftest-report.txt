@@ -1,0 +1,27 @@
+FTG-Overlay 解析引擎自测报告 2026-09-28 22:32:59
+[1] DreamCancel 记法：cr.B, cr.A, df+D(1), qcf+D, rdp+D
+  PASS  共 5 个步骤（token 数 5）
+  PASS  cr.B → 蹲姿箭头 + LK
+  PASS  cr.A → 蹲姿箭头 + LP
+  PASS  df+D(1) → ↘ + HK + 1F 标注
+  PASS  qcf+D → ↓↘→ + HK
+  PASS  rdp+D → ←↓↙ + HK
+[2] 数字记法：2B, 2A, 3D(1), 26D, 421D
+  PASS  2B → ↓ + LK
+  PASS  3D(1) → ↘ + HK + 1F
+  PASS  26D → ↓→ + HK
+  PASS  421D → ←↓↙ + HK（rdp）
+[3] 跳入起手：j.C, st.C(2), qcf+A, hcb+B
+  PASS  j.C → 跳姿箭头 + HP
+  PASS  st.C(2) → 站姿 + HP + 2F
+  PASS  hcb+B → →↘↓↙← + LK
+  PASS  qcf+A → ↓↘→ + LP
+[4] 容错：st.C, xx HD, qcf+C, ???猜测
+  PASS  包含 cancel 分隔符
+  PASS  未知记号 2 处且原样保留（HD / ???猜测）
+[5] 原按钮名保留：cr.B 的 Orig 应为 B（A/B/C/D 显示模式用）
+  PASS  cr.B → Orig=B
+  PASS  236D → 数字段 236 + Orig=D
+[6] 非法输入不崩溃
+  PASS  空串 / 全逗号 / 乱码 均不抛异常
+结果：全部通过
