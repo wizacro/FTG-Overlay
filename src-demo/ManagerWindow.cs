@@ -124,16 +124,15 @@ namespace FTGOverlayDemo
             sdock.Children.Add(titleStack);
 
             var navStack = new StackPanel { Margin = new Thickness(0, 4, 0, 0) };
-            _navImport = NavItem("导入连段", true);
-            _navShow = NavItem("悬浮展示", false);
+            _navImport = NavItem("导入连段", true, () => ActivateNav(0));
+            _navShow = NavItem("悬浮展示", false, () => ActivateNav(1));
             navStack.Children.Add(_navImport);
             navStack.Children.Add(_navShow);
             Grid.SetRow(navStack, 1);
             sdock.Children.Add(navStack);
 
             var bottom = new StackPanel { Margin = new Thickness(0, 0, 0, 12) };
-            var help = NavItem("?  使用说明", false);
-            help.MouseLeftButtonDown += (s, e) => ShowHelp();
+            var help = NavItem("?  使用说明", false, () => ShowHelp());
             bottom.Children.Add(help);
             bottom.Children.Add(new TextBlock
             {
@@ -192,7 +191,7 @@ namespace FTGOverlayDemo
             return root;
         }
 
-        Border NavItem(string text, bool active)
+        Border NavItem(string text, bool active, Action onClick = null)
         {
             var b = new Border
             {
@@ -211,6 +210,8 @@ namespace FTGOverlayDemo
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(12, 0, 0, 0)
             };
+            if (onClick != null)
+                b.MouseLeftButtonDown += (s, e) => { e.Handled = true; onClick(); };
             return b;
         }
 
