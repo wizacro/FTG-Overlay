@@ -75,6 +75,9 @@ namespace FTGOverlayDemo
             };
             _updating = Math.Max(0, _updating - 1);
 
+            // 初始页面：导入（必须显式调用一次，否则两页会同时可见叠在一起）
+            ActivateNav(0);
+
             // 首次运行：自动弹出一次使用说明，并告知以后在哪里看
             if (_store.Settings.FirstRun)
             {
@@ -97,30 +100,38 @@ namespace FTGOverlayDemo
 
             // ---- 左侧深色导航栏 ----
             var sidebar = new Border { Background = new SolidColorBrush(CSidebar) };
-            var dock = new DockPanel();
-            var navStack = new StackPanel { Margin = new Thickness(0, 14, 0, 0) };
-            navStack.Children.Add(new TextBlock
+            var sdock = new Grid();
+            sdock.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            sdock.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            sdock.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+            var titleStack = new StackPanel { Margin = new Thickness(18, 16, 0, 14) };
+            titleStack.Children.Add(new TextBlock
             {
                 Text = "FTG-Overlay",
                 FontSize = 16,
                 FontWeight = FontWeights.Bold,
-                Foreground = Brushes.White,
-                Margin = new Thickness(18, 0, 0, 1)
+                Foreground = Brushes.White
             });
-            navStack.Children.Add(new TextBlock
+            titleStack.Children.Add(new TextBlock
             {
                 Text = "格斗连段小抄",
                 FontSize = 11,
                 Foreground = new SolidColorBrush(Color.FromRgb(0x76, 0x7C, 0x90)),
-                Margin = new Thickness(18, 0, 0, 16)
+                Margin = new Thickness(0, 1, 0, 0)
             });
+            Grid.SetRow(titleStack, 0);
+            sdock.Children.Add(titleStack);
+
+            var navStack = new StackPanel { Margin = new Thickness(0, 4, 0, 0) };
             _navImport = NavItem("导入连段", true);
             _navShow = NavItem("悬浮展示", false);
             navStack.Children.Add(_navImport);
             navStack.Children.Add(_navShow);
-            dock.Children.Add(navStack);
+            Grid.SetRow(navStack, 1);
+            sdock.Children.Add(navStack);
 
-            var bottom = new StackPanel { VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(0, 0, 0, 12) };
+            var bottom = new StackPanel { Margin = new Thickness(0, 0, 0, 12) };
             var help = NavItem("?  使用说明", false);
             help.MouseLeftButtonDown += (s, e) => ShowHelp();
             bottom.Children.Add(help);
@@ -131,9 +142,9 @@ namespace FTGOverlayDemo
                 Foreground = new SolidColorBrush(Color.FromRgb(0x56, 0x5B, 0x6B)),
                 Margin = new Thickness(18, 8, 0, 0)
             });
-            DockPanel.SetDock(bottom, Dock.Bottom);
-            dock.Children.Add(bottom);
-            sidebar.Child = dock;
+            Grid.SetRow(bottom, 2);
+            sdock.Children.Add(bottom);
+            sidebar.Child = sdock;
             Grid.SetColumn(sidebar, 0);
             root.Children.Add(sidebar);
 
@@ -784,6 +795,7 @@ namespace FTGOverlayDemo
             Grid.SetColumn(edit, 2);
             var del = Btn2("删除", (s, e) => DeleteCombo(c));
             del.Foreground = new SolidColorBrush(Color.FromRgb(0xC8, 0x3B, 0x3B));
+            del.Margin = new Thickness(6, 0, 0, 0);
             Grid.SetColumn(del, 3);
 
             g.Children.Add(show); g.Children.Add(info); g.Children.Add(edit); g.Children.Add(del);
@@ -915,7 +927,7 @@ namespace FTGOverlayDemo
         {
             try
             {
-                ActivateNav(0);
+                // 第一张：不切换页面，验证启动时的原始状态（应只有导入页可见）
                 Shoot(_shotPath);
                 ActivateNav(1);
                 Shoot(System.IO.Path.Combine(

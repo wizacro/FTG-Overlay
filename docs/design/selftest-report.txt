@@ -1,4 +1,4 @@
-FTG-Overlay 解析引擎自测报告 2026-09-29 14:04:29
+FTG-Overlay 解析引擎自测报告 2026-09-29 14:33:32
 [1] DreamCancel 记法：cr.B, cr.A, df+D(1), qcf+D, rdp+D
   PASS  共 5 个步骤（token 数 5）
   PASS  cr.B → 蹲姿箭头 + LK
