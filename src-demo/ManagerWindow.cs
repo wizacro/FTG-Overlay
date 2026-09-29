@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -312,31 +313,119 @@ namespace FTGOverlayDemo
             return template;
         }
 
-        TextBox RoundTextBox(double height, bool multiline)
+        // 圆角外观 + 默认 TextBox 模板（默认模板渲染文字最可靠；之前自绘模板会把文字弄丢）
+        UIElement TextBoxWrap(TextBox tb, double height)
         {
-            var tb = new TextBox
+            tb.BorderThickness = new Thickness(0);
+            tb.Background = Brushes.Transparent;
+            tb.VerticalContentAlignment = VerticalAlignment.Center;
+            tb.Margin = new Thickness(8, 0, 8, 0);
+            return new Border
             {
                 Height = height,
-                FontSize = 13,
-                BorderBrush = new SolidColorBrush(Color.FromRgb(0xD8, 0xDC, 0xE4)),
+                CornerRadius = new CornerRadius(7),
                 Background = Brushes.White,
-                VerticalContentAlignment = multiline ? VerticalAlignment.Top : VerticalAlignment.Center,
-                TextWrapping = multiline ? TextWrapping.Wrap : TextWrapping.NoWrap
+                BorderBrush = new SolidColorBrush(Color.FromRgb(0xD8, 0xDC, 0xE4)),
+                BorderThickness = new Thickness(1),
+                Child = tb
             };
-            var template = new ControlTemplate(typeof(TextBox));
-            var f = new FrameworkElementFactory(typeof(Border));
-            f.Name = "bd";
-            f.SetValue(Border.CornerRadiusProperty, new CornerRadius(7));
-            f.SetValue(Border.BackgroundProperty, new TemplateBindingExtension(TextBox.BackgroundProperty));
-            f.SetValue(Border.BorderBrushProperty, new TemplateBindingExtension(TextBox.BorderBrushProperty));
-            f.SetValue(Border.BorderThicknessProperty, new TemplateBindingExtension(TextBox.BorderThicknessProperty));
-            var sv = new FrameworkElementFactory(typeof(ScrollViewer));
-            sv.Name = "PART_ContentEditor";
-            sv.SetValue(ScrollViewer.MarginProperty, new Thickness(8, 4, 8, 4));
-            f.AppendChild(sv);
-            template.VisualTree = f;
-            tb.Template = template;
-            return tb;
+        }
+
+        // 圆角下拉框：ToggleButton（边框+箭头）+ 选中项展示 + Popup 列表；editable 变体带 PART_EditableTextBox
+        ComboBox MakeCombo(bool editable)
+        {
+            var cb = new ComboBox
+            {
+                Height = 30,
+                Width = 180,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalContentAlignment = VerticalAlignment.Center,
+                FontSize = 12.5
+            };
+            var itemStyle = new Style(typeof(ComboBoxItem));
+            itemStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(10, 5, 10, 5)));
+            cb.ItemContainerStyle = itemStyle;
+
+            var toggleTemplate = new ControlTemplate(typeof(ToggleButton));
+            var tRoot = new FrameworkElementFactory(typeof(Border));
+            tRoot.Name = "bd";
+            tRoot.SetValue(Border.CornerRadiusProperty, new CornerRadius(7));
+            tRoot.SetValue(Border.BackgroundProperty, Brushes.White);
+            tRoot.SetValue(Border.BorderBrushProperty, new SolidColorBrush(Color.FromRgb(0xD8, 0xDC, 0xE4)));
+            tRoot.SetValue(Border.BorderThicknessProperty, new Thickness(1));
+            var arrow = new FrameworkElementFactory(typeof(System.Windows.Shapes.Path));
+            arrow.SetValue(System.Windows.Shapes.Path.DataProperty, Geometry.Parse("M 0,0 L 4,4 L 8,0"));
+            arrow.SetValue(System.Windows.Shapes.Path.StrokeProperty, new SolidColorBrush(Color.FromRgb(0x6B, 0x70, 0x7E)));
+            arrow.SetValue(System.Windows.Shapes.Path.StrokeThicknessProperty, 1.6);
+            arrow.SetValue(System.Windows.Shapes.Path.HorizontalAlignmentProperty, HorizontalAlignment.Right);
+            arrow.SetValue(System.Windows.Shapes.Path.VerticalAlignmentProperty, VerticalAlignment.Center);
+            arrow.SetValue(System.Windows.Shapes.Path.MarginProperty, new Thickness(0, 0, 10, 0));
+            tRoot.AppendChild(arrow);
+            var trigOpen = new Trigger { Property = ToggleButton.IsCheckedProperty, Value = true };
+            trigOpen.Setters.Add(new Setter(Border.BorderBrushProperty, Accent, "bd"));
+            toggleTemplate.Triggers.Add(trigOpen);
+            toggleTemplate.VisualTree = tRoot;
+
+            var t = new ControlTemplate(typeof(ComboBox));
+            var grid = new FrameworkElementFactory(typeof(Grid));
+
+            var toggle = new FrameworkElementFactory(typeof(ToggleButton));
+            toggle.Name = "tgl";
+            toggle.SetValue(ToggleButton.TemplateProperty, toggleTemplate);
+            toggle.SetValue(ToggleButton.FocusableProperty, false);
+            toggle.SetValue(ToggleButton.IsCheckedProperty, new System.Windows.Data.Binding("IsDropDownOpen")
+            {
+                RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent),
+                Mode = System.Windows.Data.BindingMode.TwoWay
+            });
+            grid.AppendChild(toggle);
+
+            if (!editable)
+            {
+                var cp = new FrameworkElementFactory(typeof(ContentPresenter));
+                cp.SetValue(ContentPresenter.ContentProperty, new TemplateBindingExtension(ComboBox.SelectionBoxItemProperty));
+                cp.SetValue(ContentPresenter.MarginProperty, new Thickness(10, 0, 26, 0));
+                cp.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
+                cp.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Left);
+                cp.SetValue(UIElement.IsHitTestVisibleProperty, false);
+                grid.AppendChild(cp);
+            }
+            else
+            {
+                var etb = new FrameworkElementFactory(typeof(TextBox));
+                etb.Name = "PART_EditableTextBox";
+                etb.SetValue(TextBox.BackgroundProperty, Brushes.Transparent);
+                etb.SetValue(TextBox.BorderThicknessProperty, new Thickness(0));
+                etb.SetValue(TextBox.MarginProperty, new Thickness(10, 0, 26, 0));
+                etb.SetValue(TextBox.VerticalAlignmentProperty, VerticalAlignment.Center);
+                etb.SetValue(TextBox.FontSizeProperty, 12.5);
+                grid.AppendChild(etb);
+            }
+
+            var popup = new FrameworkElementFactory(typeof(Popup));
+            popup.SetValue(Popup.IsOpenProperty, new TemplateBindingExtension(ComboBox.IsDropDownOpenProperty));
+            popup.SetValue(Popup.PlacementProperty, PlacementMode.Bottom);
+            popup.SetValue(Popup.AllowsTransparencyProperty, true);
+            popup.SetValue(Popup.PopupAnimationProperty, PopupAnimation.Fade);
+            popup.SetValue(Popup.FocusableProperty, false);
+            var pb = new FrameworkElementFactory(typeof(Border));
+            pb.SetValue(Border.BackgroundProperty, Brushes.White);
+            pb.SetValue(Border.BorderBrushProperty, new SolidColorBrush(Color.FromRgb(0xD8, 0xDC, 0xE4)));
+            pb.SetValue(Border.CornerRadiusProperty, new CornerRadius(7));
+            pb.SetValue(Border.BorderThicknessProperty, new Thickness(1));
+            pb.SetValue(Border.MarginProperty, new Thickness(0, 3, 0, 0));
+            var psv = new FrameworkElementFactory(typeof(ScrollViewer));
+            psv.SetValue(ScrollViewer.MaxHeightProperty, 190.0);
+            psv.SetValue(ScrollViewer.VerticalScrollBarVisibilityProperty, ScrollBarVisibility.Auto);
+            var ip = new FrameworkElementFactory(typeof(ItemsPresenter));
+            psv.AppendChild(ip);
+            pb.AppendChild(psv);
+            popup.AppendChild(pb);
+            grid.AppendChild(popup);
+
+            t.VisualTree = grid;
+            cb.Template = t;
+            return cb;
         }
 
         UIElement PreviewPanel()
@@ -385,14 +474,14 @@ namespace FTGOverlayDemo
 
             sp.Children.Add(Card("选择对局", CtxRow()));
             sp.Children.Add(Card("录入连招",
-                FieldLabel("连招信息（必填，支持 DreamCancel / 数字 / 2002UM 攻略记法，详见右上角 ?）"),
-                RawBox(),
+                FieldLabel("连招信息"),
+                TextBoxWrap(RawBox(), 60),
                 FieldLabel("预览"),
                 PreviewPanel(),
-                FieldLabel("标题（可留空，自动命名 Combo x）"),
-                TitleBox(),
-                FieldLabel("备注（可选）"),
-                NotesBox(),
+                FieldLabel("标题（留空自动命名）"),
+                TextBoxWrap(TitleBox(), 30),
+                FieldLabel("备注"),
+                TextBoxWrap(NotesBox(), 30),
                 SaveRow()));
 
             scroll.Content = sp;
@@ -402,42 +491,53 @@ namespace FTGOverlayDemo
 
         UIElement CtxRow()
         {
-            var g = new Grid { Margin = new Thickness(0, 0, 12, 0) };
-            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            var g = new Grid();
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(20) });
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             var left = new StackPanel();
             left.Children.Add(FieldLabel("游戏"));
-            _gameBox = new ComboBox { Height = 30 };
+            _gameBox = MakeCombo(false);
             _gameBox.SelectionChanged += (s, e) => { if (_updating == 0) ApplyGame(); };
             left.Children.Add(_gameBox);
             var right = new StackPanel();
             right.Children.Add(FieldLabel("角色"));
-            _charBox = new ComboBox { Height = 30, IsEditable = true };
+            var charRow = new StackPanel { Orientation = Orientation.Horizontal };
+            _charBox = MakeCombo(false);
             _charBox.SelectionChanged += (s, e) => { if (_updating == 0) ApplyCharacter(); };
-            _charBox.LostFocus += (s, e) => { if (_updating == 0) ApplyCharacter(); };
-            _charBox.KeyDown += (s, e) => { if (e.Key == Key.Enter && _updating == 0) ApplyCharacter(); };
-            right.Children.Add(_charBox);
-            Grid.SetColumn(left, 0); Grid.SetColumn(right, 1);
+            _charBox.Width = 126;
+            charRow.Children.Add(_charBox);
+            var newBtn = Btn2("＋新角色", NewCharacter);
+            newBtn.Margin = new Thickness(6, 0, 0, 0);
+            newBtn.Height = 30;
+            charRow.Children.Add(newBtn);
+            right.Children.Add(charRow);
+            Grid.SetColumn(left, 0); Grid.SetColumn(right, 2);
             g.Children.Add(left); g.Children.Add(right);
             return g;
         }
 
         TextBox RawBox()
         {
-            _rawBox = RoundTextBox(60, true);
+            _rawBox = new TextBox
+            {
+                FontSize = 13,
+                TextWrapping = TextWrapping.Wrap,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto
+            };
             _rawBox.TextChanged += (s, e) => { if (_updating == 0) PreviewRefresh(); };
             return _rawBox;
         }
 
         TextBox TitleBox()
         {
-            _nameBox = RoundTextBox(30, false);
+            _nameBox = new TextBox { FontSize = 13 };
             return _nameBox;
         }
 
         TextBox NotesBox()
         {
-            _notesBox = RoundTextBox(30, false);
+            _notesBox = new TextBox { FontSize = 13 };
             return _notesBox;
         }
 
@@ -651,6 +751,9 @@ namespace FTGOverlayDemo
                 seen.Add(c.Character);
                 _charBox.Items.Add(new ComboBoxItem { Tag = c.Character, Content = c.Character });
             }
+            // 当前角色即使还没有连招也保留在列表里（刚新建、尚未录入时）
+            if (cur != null && !seen.Contains(cur))
+                _charBox.Items.Add(new ComboBoxItem { Tag = cur, Content = cur });
             foreach (var item in _charBox.Items)
             {
                 var ci = (ComboBoxItem)item;
@@ -670,9 +773,48 @@ namespace FTGOverlayDemo
         {
             var item = _charBox.SelectedItem as ComboBoxItem;
             if (item != null) return (string)item.Tag;
-            var text = _charBox.Text != null ? _charBox.Text.Trim() : "";
-            if (text.Length == 0 || text == "全角色通用") return null;
-            return text;
+            return null;
+        }
+
+        void NewCharacter(object sender, RoutedEventArgs re)
+        {
+            var dlg = new Window
+            {
+                Title = "新建角色",
+                Width = 340,
+                Height = 160,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Owner = this,
+                Background = new SolidColorBrush(CPageBg),
+                ResizeMode = ResizeMode.NoResize
+            };
+            var sp = new StackPanel { Margin = new Thickness(16) };
+            sp.Children.Add(new TextBlock { Text = "角色名称（当前游戏：" + _store.GameName(_store.Settings.Game) + "）", FontSize = 12.5, Foreground = Ink, Margin = new Thickness(0, 0, 0, 8) });
+            var tb = new TextBox { FontSize = 13, Height = 28 };
+            sp.Children.Add(tb);
+            sp.Children.Add(new TextBlock { Text = "确定后即切换到该角色，随后录入的连招都会保存在它名下。", FontSize = 11, Foreground = Dim, Margin = new Thickness(0, 8, 0, 8), TextWrapping = TextWrapping.Wrap });
+            var row = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+            var ok = new Button { Content = "确定", Width = 76, Height = 28, Background = Accent, Foreground = Brushes.White, BorderThickness = new Thickness(0), Template = RoundedButtonTemplate() };
+            var cancel = new Button { Content = "取消", Width = 76, Height = 28, Background = new SolidColorBrush(Color.FromRgb(0xEE, 0xF0, 0xF4)), Foreground = Ink, BorderThickness = new Thickness(0), Margin = new Thickness(8, 0, 0, 0), Template = RoundedButtonTemplate() };
+            ok.Click += (s, e) =>
+            {
+                var name = tb.Text.Trim();
+                if (name.Length == 0 || name == "全角色通用") { dlg.DialogResult = false; return; }
+                _store.Settings.Character = name;
+                _store.SaveSettings();
+                _updating++;
+                RebuildCharBox();
+                _updating = Math.Max(0, _updating - 1);
+                _overlay.RefreshAll();
+                RebuildList();
+                dlg.Close();
+            };
+            cancel.Click += (s, e) => dlg.Close();
+            row.Children.Add(ok); row.Children.Add(cancel);
+            sp.Children.Add(row);
+            dlg.Content = sp;
+            tb.Focus();
+            dlg.ShowDialog();
         }
 
         void ApplyGame()

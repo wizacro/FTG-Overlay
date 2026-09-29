@@ -1,4 +1,4 @@
-FTG-Overlay 解析引擎自测报告 2026-09-29 14:37:59
+FTG-Overlay 解析引擎自测报告 2026-09-29 15:08:27
 [1] DreamCancel 记法：cr.B, cr.A, df+D(1), qcf+D, rdp+D
   PASS  共 5 个步骤（token 数 5）
   PASS  cr.B → 蹲姿箭头 + LK
@@ -17,13 +17,13 @@ FTG-Overlay 解析引擎自测报告 2026-09-29 14:37:59
   PASS  hcb+B → →↘↓↙← + LK
   PASS  qcf+A → ↓↘→ + LP
 [4] 容错：st.C, xx HD, qcf+C, ???猜测
-  PASS  包含 cancel 分隔符
+  PASS  xx 记号被省略（不渲染取消分隔符）
   PASS  未知记号 2 处且原样保留（HD / ???猜测）
 [5] 原按钮名保留：cr.B 的 Orig 应为 B（A/B/C/D 显示模式用）
   PASS  cr.B → Orig=B
   PASS  236D → 数字段 236 + Orig=D
-[6] 2002UM 攻略记法：c5C xx 3D xx 63214B+C xx 236D•D, 421D
-  PASS  token 数 8（4 步 + 3 取消 + 1 衔接步）
+[6] 2002UM 攻略记法：c5C xx 3D xx 63214B+C xx 236D•D, 421D（xx 渲染时省略）
+  PASS  token 数 5（xx 省略后仅 5 步）
   PASS  c5C → 近站（无箭头）+ HP
   PASS  3D → ↘ + HK
   PASS  63214B+C → hcb 箭头 + 双按钮 LK/HP
@@ -32,7 +32,6 @@ FTG-Overlay 解析引擎自测报告 2026-09-29 14:37:59
 [7] 中立 5 与段数标注：5D, c5C(1) xx 236A, xxx 214214K
   PASS  5D → 无方向箭头 + HK
   PASS  c5C(1) → 近站 + HP + 段数标注 1
-  PASS  包含 xxx 取消分隔符
   PASS  214214K → 逐位箭头 ↓↙←↓↙← + K
 [8] 非法输入不崩溃
   PASS  空串 / 全逗号 / 乱码 均不抛异常

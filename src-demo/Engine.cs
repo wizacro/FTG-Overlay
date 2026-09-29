@@ -65,14 +65,15 @@ namespace FTGOverlayDemo
             var tokens = new List<object>();
             if (raw == null) return tokens;
             // 逗号与空格均为步骤分隔符（2002UM 攻略写法：c5C xx 3D xx 63214B+C）
+            // xx / xxx（取消）与 > （连携）只是衔接关系说明，玩家需要看的是"下一步按什么"，渲染时省略
             var parts = raw.Split(new[] { ',', '，', ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
             foreach (var p in parts)
             {
                 var part = p.Trim();
                 if (part.Length == 0) continue;
                 if (part.Equals("xx", StringComparison.OrdinalIgnoreCase) ||
-                    part.Equals("xxx", StringComparison.OrdinalIgnoreCase)) { tokens.Add("cancel"); continue; }
-                if (part == ">") { tokens.Add("link"); continue; }
+                    part.Equals("xxx", StringComparison.OrdinalIgnoreCase) ||
+                    part == ">") continue;
                 tokens.Add(ParseStep(part, buttonMap));
             }
             return tokens;
@@ -269,7 +270,7 @@ namespace FTGOverlayDemo
             {
                 sb.AppendLine("[4] 容错：st.C, xx HD, qcf+C, ???猜测");
                 var t = ParseCombo("st.C, xx HD, qcf+C, ???猜测", map);
-                Check(sb, "包含 cancel 分隔符", t.Contains("cancel"));
+                Check(sb, "xx 记号被省略（不渲染取消分隔符）", !t.Contains("cancel"));
                 int unknown = 0;
                 foreach (var x in t) { var s = x as StepToken; if (s != null && s.Unknown) unknown++; }
                 Check(sb, "未知记号 2 处且原样保留（HD / ???猜测）", unknown == 2);
@@ -282,18 +283,18 @@ namespace FTGOverlayDemo
                 Check(sb, "236D → 数字段 236 + Orig=D", s2 != null && s2.MotionDigits == "236" && s2.Buttons[0].Orig == "D");
             }
             {
-                sb.AppendLine("[6] 2002UM 攻略记法：c5C xx 3D xx 63214B+C xx 236D•D, 421D");
+                sb.AppendLine("[6] 2002UM 攻略记法：c5C xx 3D xx 63214B+C xx 236D•D, 421D（xx 渲染时省略）");
                 var t = ParseCombo("c5C xx 3D xx 63214B+C xx 236D•D, 421D", map);
-                Check(sb, "token 数 8（4 步 + 3 取消 + 1 衔接步）", t.Count == 8);
+                Check(sb, "token 数 5（xx 省略后仅 5 步）", t.Count == 5);
                 var s1 = t[0] as StepToken;
                 Check(sb, "c5C → 近站（无箭头）+ HP", s1 != null && s1.Stance == "" && s1.Motion.Length == 0 && s1.Buttons[0].Label == "HP");
-                var s2 = t[2] as StepToken;
+                var s2 = t[1] as StepToken;
                 Check(sb, "3D → ↘ + HK", s2 != null && s2.Motion == "↘" && s2.Buttons[0].Label == "HK");
-                var s3 = t[4] as StepToken;
+                var s3 = t[2] as StepToken;
                 Check(sb, "63214B+C → hcb 箭头 + 双按钮 LK/HP", s3 != null && s3.Motion == "→↘↓↙←" && s3.Buttons.Count == 2 && s3.Buttons[0].Label == "LK" && s3.Buttons[1].Label == "HP");
-                var s4 = t[6] as StepToken;
+                var s4 = t[3] as StepToken;
                 Check(sb, "236D•D → qcf 箭头 + HK • HK（派生）", s4 != null && s4.Motion == "↓↘→" && s4.Buttons.Count == 3 && s4.Buttons[1].Key == "dot");
-                var s5 = t[7] as StepToken;
+                var s5 = t[4] as StepToken;
                 Check(sb, "421D → ←↓↙ + HK", s5 != null && s5.Motion == "←↓↙" && s5.Buttons[0].Label == "HK");
             }
             {
@@ -303,8 +304,7 @@ namespace FTGOverlayDemo
                 Check(sb, "5D → 无方向箭头 + HK", s1 != null && s1.Motion.Length == 0 && s1.Buttons[0].Label == "HK");
                 var s2 = t[1] as StepToken;
                 Check(sb, "c5C(1) → 近站 + HP + 段数标注 1", s2 != null && s2.Stance == "" && s2.Frame == 1 && s2.Buttons[0].Label == "HP");
-                Check(sb, "包含 xxx 取消分隔符", t.Contains("cancel"));
-                var s4 = t[t.Count - 1] as StepToken;
+                var s4 = t[3] as StepToken;
                 Check(sb, "214214K → 逐位箭头 ↓↙←↓↙← + K", s4 != null && s4.Motion == "↓↙←↓↙←" && s4.Buttons[0].Label == "K");
             }
             {
@@ -333,15 +333,8 @@ namespace FTGOverlayDemo
             bool prevStep = false;
             foreach (var tok in tokens)
             {
-                var sep = tok as string;
-                if (sep != null)
-                {
-                    row.Children.Add(SepElem(sep == "cancel" ? "✕✕" : "≫", tc));
-                    prevStep = false;
-                    continue;
-                }
                 var st = tok as StepToken;
-                if (st == null) continue;
+                if (st == null) continue;   // 兼容：取消/连携标记已在解析层省略
                 if (prevStep) row.Children.Add(SepElem("▶", tc));
                 row.Children.Add(StepElem(st, displayMode, buttonStyle, tc));
                 prevStep = true;
