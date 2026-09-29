@@ -41,6 +41,7 @@ namespace FTGOverlayDemo
         public string Character;                   // null = 全角色通用
         public bool OverlayVisible = true;
         public bool Locked = true;                 // true=锁定（穿透不可拖）| false=解锁（可拖动）
+        public bool FirstRun = true;               // 首次运行：自动弹出使用说明
     }
 
     public class Store
@@ -127,6 +128,7 @@ namespace FTGOverlayDemo
                     Settings.Character = GetStrOrNull(s, "character");
                     Settings.OverlayVisible = GetBool(s, "overlayVisible", Settings.OverlayVisible);
                     Settings.Locked = GetBool(s, "locked", Settings.Locked);
+                    Settings.FirstRun = GetBool(s, "firstRun", Settings.FirstRun);
                 }
                 catch { }
             }
@@ -188,7 +190,8 @@ namespace FTGOverlayDemo
                 { "theme", Settings.Theme }, { "buttonStyle", Settings.ButtonStyle },
                 { "displayMode", Settings.DisplayMode },
                 { "game", Settings.Game }, { "character", Settings.Character },
-                { "overlayVisible", Settings.OverlayVisible }, { "locked", Settings.Locked }
+                { "overlayVisible", Settings.OverlayVisible }, { "locked", Settings.Locked },
+                { "firstRun", Settings.FirstRun }
             };
             WriteJson(Path.Combine(_base, "data", "settings.json"), s);
         }

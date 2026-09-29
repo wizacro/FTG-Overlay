@@ -64,20 +64,15 @@ namespace FTGOverlayDemo
         {
             var tokens = new List<object>();
             if (raw == null) return tokens;
-            var parts = raw.Split(new[] { ',', '，' }, StringSplitOptions.RemoveEmptyEntries);
+            // 逗号与空格均为步骤分隔符（2002UM 攻略写法：c5C xx 3D xx 63214B+C）
+            var parts = raw.Split(new[] { ',', '，', ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
             foreach (var p in parts)
             {
                 var part = p.Trim();
                 if (part.Length == 0) continue;
-                if (part.Equals("xx", StringComparison.OrdinalIgnoreCase)) { tokens.Add("cancel"); continue; }
+                if (part.Equals("xx", StringComparison.OrdinalIgnoreCase) ||
+                    part.Equals("xxx", StringComparison.OrdinalIgnoreCase)) { tokens.Add("cancel"); continue; }
                 if (part == ">") { tokens.Add("link"); continue; }
-                // "xx 招式" 连写：拆为取消分隔符 + 招式
-                if (part.Length > 3 && string.Compare(part, 0, "xx", 0, 2, true, CultureInfo.InvariantCulture) == 0 && part[2] == ' ')
-                {
-                    tokens.Add("cancel");
-                    part = part.Substring(3).Trim();
-                    if (part.Length == 0) continue;
-                }
                 tokens.Add(ParseStep(part, buttonMap));
             }
             return tokens;
@@ -88,7 +83,7 @@ namespace FTGOverlayDemo
             var st = new StepToken(); st.Raw = s;
             var rest = s.Trim();
 
-            // 帧标注后缀 (N) / (NF)
+            // 帧标注后缀 (N) / (NF)——语义随来源而定（目押帧 / 段数），只渲染数字
             int open = rest.LastIndexOf('(');
             if (open >= 0 && rest.EndsWith(")", StringComparison.Ordinal))
             {
@@ -97,7 +92,7 @@ namespace FTGOverlayDemo
                 if (int.TryParse(inner, out n)) { st.Frame = n; rest = rest.Substring(0, open).Trim(); }
             }
 
-            // 姿态前缀
+            // 带点姿态前缀
             foreach (var k in Stances)
             {
                 if (rest.Length > k.Length && string.Compare(rest, 0, k, 0, k.Length, true, CultureInfo.InvariantCulture) == 0)
@@ -108,25 +103,39 @@ namespace FTGOverlayDemo
                 }
             }
 
+            // 无点近/远站前缀（2002UM 攻略风）：c5C = 近立5C，f5C = 远立5C，不画方向箭头
+            if (st.Stance.Length == 0 && rest.Length >= 2 &&
+                (rest[0] == 'c' || rest[0] == 'f' || rest[0] == 'C' || rest[0] == 'F') &&
+                rest[1] >= '0' && rest[1] <= '9')
+            {
+                st.Stance = "";
+                rest = rest.Substring(1).Trim();
+            }
+
             var segs = rest.Split('+');
             foreach (var sg0 in segs)
             {
                 var sg = sg0.Trim();
                 if (sg.Length == 0) continue;
 
-                // 数字记法直连按钮：如 2B / 26D / 421D（数字段 = 方向，其后 = 按钮）
+                // 数字记法直连按钮：如 2B / 26D / 421D / 236D•D（数字段 = 方向，其后 = 按钮，• 为派生键）
                 int i = 0;
                 while (i < sg.Length && sg[i] >= '0' && sg[i] <= '9') i++;
                 if (i > 0)
                 {
-                    st.MotionDigits = sg.Substring(0, i);
-                    st.Motion = MotionDisplayFor(st.MotionDigits);
-                    var tail = sg.Substring(i).Trim();
-                    if (tail.Length > 0)
+                    var digitsPart = sg.Substring(0, i);
+                    if (digitsPart == "5")
                     {
-                        var bt = ButtonOf(tail, buttonMap);
-                        if (bt.HasValue) st.Buttons.Add(bt.Value); else st.Unknown = true;
+                        // 5 = 中立（站立），不画方向
+                        st.Motion = ""; st.MotionDigits = "";
                     }
+                    else
+                    {
+                        st.MotionDigits = digitsPart;
+                        st.Motion = MotionDisplayFor(digitsPart);
+                    }
+                    var tail = sg.Substring(i).Trim();
+                    if (tail.Length > 0) AddButtons(st, tail, buttonMap);
                     continue;
                 }
 
@@ -144,6 +153,18 @@ namespace FTGOverlayDemo
 
             if (!st.Unknown && st.Motion.Length == 0 && st.MotionDigits.Length == 0 && st.Buttons.Count == 0 && st.Stance.Length == 0) st.Unknown = true;
             return st;
+        }
+
+        // 按钮串解析：支持 "D•D"（• = 同一必杀的派生键）
+        static void AddButtons(StepToken st, string tail, Dictionary<string, string> buttonMap)
+        {
+            var parts = tail.Split('•');
+            for (int k = 0; k < parts.Length; k++)
+            {
+                if (k > 0) st.Buttons.Add(new Btn("•", "•", "dot"));
+                var b = ButtonOf(parts[k].Trim(), buttonMap);
+                if (b.HasValue) st.Buttons.Add(b.Value); else st.Unknown = true;
+            }
         }
 
         static bool TryMotion(string sg, out string digits)
@@ -261,7 +282,33 @@ namespace FTGOverlayDemo
                 Check(sb, "236D → 数字段 236 + Orig=D", s2 != null && s2.MotionDigits == "236" && s2.Buttons[0].Orig == "D");
             }
             {
-                sb.AppendLine("[6] 非法输入不崩溃");
+                sb.AppendLine("[6] 2002UM 攻略记法：c5C xx 3D xx 63214B+C xx 236D•D, 421D");
+                var t = ParseCombo("c5C xx 3D xx 63214B+C xx 236D•D, 421D", map);
+                Check(sb, "token 数 8（4 步 + 3 取消 + 1 衔接步）", t.Count == 8);
+                var s1 = t[0] as StepToken;
+                Check(sb, "c5C → 近站（无箭头）+ HP", s1 != null && s1.Stance == "" && s1.Motion.Length == 0 && s1.Buttons[0].Label == "HP");
+                var s2 = t[2] as StepToken;
+                Check(sb, "3D → ↘ + HK", s2 != null && s2.Motion == "↘" && s2.Buttons[0].Label == "HK");
+                var s3 = t[4] as StepToken;
+                Check(sb, "63214B+C → hcb 箭头 + 双按钮 LK/HP", s3 != null && s3.Motion == "→↘↓↙←" && s3.Buttons.Count == 2 && s3.Buttons[0].Label == "LK" && s3.Buttons[1].Label == "HP");
+                var s4 = t[6] as StepToken;
+                Check(sb, "236D•D → qcf 箭头 + HK • HK（派生）", s4 != null && s4.Motion == "↓↘→" && s4.Buttons.Count == 3 && s4.Buttons[1].Key == "dot");
+                var s5 = t[7] as StepToken;
+                Check(sb, "421D → ←↓↙ + HK", s5 != null && s5.Motion == "←↓↙" && s5.Buttons[0].Label == "HK");
+            }
+            {
+                sb.AppendLine("[7] 中立 5 与段数标注：5D, c5C(1) xx 236A, xxx 214214K");
+                var t = ParseCombo("5D, c5C(1) xx 236A, xxx 214214K", map);
+                var s1 = t[0] as StepToken;
+                Check(sb, "5D → 无方向箭头 + HK", s1 != null && s1.Motion.Length == 0 && s1.Buttons[0].Label == "HK");
+                var s2 = t[1] as StepToken;
+                Check(sb, "c5C(1) → 近站 + HP + 段数标注 1", s2 != null && s2.Stance == "" && s2.Frame == 1 && s2.Buttons[0].Label == "HP");
+                Check(sb, "包含 xxx 取消分隔符", t.Contains("cancel"));
+                var s4 = t[t.Count - 1] as StepToken;
+                Check(sb, "214214K → 逐位箭头 ↓↙←↓↙← + K", s4 != null && s4.Motion == "↓↙←↓↙←" && s4.Buttons[0].Label == "K");
+            }
+            {
+                sb.AppendLine("[8] 非法输入不崩溃");
                 ParseCombo("", map); ParseCombo("，，，", map); ParseCombo("zzz@@@", map);
                 Check(sb, "空串 / 全逗号 / 乱码 均不抛异常", true);
             }
@@ -337,6 +384,12 @@ namespace FTGOverlayDemo
                 sp.Children.Add(Txt(motion, 20, FontWeights.Bold, tc.Arrow, 1.0));
             foreach (var b in s.Buttons)
             {
+                if (b.Key == "dot")
+                {
+                    // 派生键分隔符（如 236D•D）：不套色块
+                    sp.Children.Add(Txt("•", 15, FontWeights.Bold, tc.Arrow, 0.85));
+                    continue;
+                }
                 var label = buttonStyle == "original" ? b.Orig : b.Label;
                 var bd = new Border
                 {
@@ -371,7 +424,7 @@ namespace FTGOverlayDemo
                 };
                 fbd.Child = new TextBlock
                 {
-                    Text = s.Frame.Value + "F",
+                    Text = s.Frame.Value.ToString(),   // 只标数字：既可读作帧数也可读作段数
                     FontSize = 10.5,
                     FontWeight = FontWeights.Bold,
                     Foreground = Brushes.White,

@@ -1,4 +1,4 @@
-FTG-Overlay 解析引擎自测报告 2026-09-28 22:32:59
+FTG-Overlay 解析引擎自测报告 2026-09-29 14:04:29
 [1] DreamCancel 记法：cr.B, cr.A, df+D(1), qcf+D, rdp+D
   PASS  共 5 个步骤（token 数 5）
   PASS  cr.B → 蹲姿箭头 + LK
@@ -22,6 +22,18 @@ FTG-Overlay 解析引擎自测报告 2026-09-28 22:32:59
 [5] 原按钮名保留：cr.B 的 Orig 应为 B（A/B/C/D 显示模式用）
   PASS  cr.B → Orig=B
   PASS  236D → 数字段 236 + Orig=D
-[6] 非法输入不崩溃
+[6] 2002UM 攻略记法：c5C xx 3D xx 63214B+C xx 236D•D, 421D
+  PASS  token 数 8（4 步 + 3 取消 + 1 衔接步）
+  PASS  c5C → 近站（无箭头）+ HP
+  PASS  3D → ↘ + HK
+  PASS  63214B+C → hcb 箭头 + 双按钮 LK/HP
+  PASS  236D•D → qcf 箭头 + HK • HK（派生）
+  PASS  421D → ←↓↙ + HK
+[7] 中立 5 与段数标注：5D, c5C(1) xx 236A, xxx 214214K
+  PASS  5D → 无方向箭头 + HK
+  PASS  c5C(1) → 近站 + HP + 段数标注 1
+  PASS  包含 xxx 取消分隔符
+  PASS  214214K → 逐位箭头 ↓↙←↓↙← + K
+[8] 非法输入不崩溃
   PASS  空串 / 全逗号 / 乱码 均不抛异常
 结果：全部通过
